@@ -3,7 +3,7 @@ import "./App.css";
 import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 
-const API_KEY = "3026af7c55d0042a1384a7407929c874";
+const API_KEY = "WEATHER_API_KEY";
 const LOCAL_STORAGE_KEY = "weatherSearchHistory";
 
 function App() {
