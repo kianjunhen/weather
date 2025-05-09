@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from "react";
 import "./App.css";
-import SearchOutlinedIcon from "@mui/icons-material/SearchOutlined";
-import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
+import SearchIcon from "@mui/icons-material/Search";
+import { Grid, Box } from "@mui/material";
+import HistoryItem from "./HistoryItem/HistoryItem";
+import CircularProgress from "@mui/material/CircularProgress";
+import dayjs from "dayjs";
 
 const API_KEY = "WEATHER_API_KEY";
 const LOCAL_STORAGE_KEY = "weatherSearchHistory";
@@ -11,6 +14,7 @@ function App() {
   const [weatherData, setWeatherData] = useState(null);
   const [history, setHistory] = useState([]);
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const storedHistory = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -28,6 +32,7 @@ function App() {
   const handleSearch = async () => {
     if (!city) return;
 
+    setIsLoading(true);
     setError("");
     setWeatherData(null);
 
@@ -44,13 +49,13 @@ function App() {
         country: data.sys.country,
         description: data.weather[0].description,
         temperature: [
-          (data.main.temp_min - 273.15).toFixed(2),
-          (data.main.temp_max - 273.15).toFixed(2),
+          (data.main.temp_min - 273.15).toFixed(0),
+          (data.main.temp_max - 273.15).toFixed(0),
         ],
         isCloud: data.weather[0].main === "Clouds",
         humidity: `${data.main.humidity}%`,
-        time: new Date().toLocaleString(),
-        timeOnly: new Date().toLocaleTimeString(),
+        time: dayjs().format("DD-MM-YYYY hh:mma").toLowerCase(),
+        timeOnly: dayjs().format("DD-MM-YYYY hh:mma").toLowerCase(),
       };
 
       const filteredHistory = history.filter(
@@ -66,6 +71,8 @@ function App() {
       handleClear();
     } catch (err) {
       setError("Not found");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -84,73 +91,96 @@ function App() {
     setHistory(updated);
   };
 
-  return (
-    <div className="app-container">
-      <div className="search-section">
-        <input
-          className="country-input"
-          type="text"
-          placeholder="City"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-        />
-        <button onClick={handleSearch} className="search-button">
-          <SearchOutlinedIcon />
-        </button>
-      </div>
-
-      {error && <div className="error-box">Not found</div>}
-
-      {weatherData && (
-        <div className={`weather-card ${weatherData?.isCloud ? "cloud" : ""}`}>
-          <div className="weather-info">
-            Today's Weather
-            <h1>
-              {weatherData
-                ? `${Math.round(weatherData.temperature[0])}°`
-                : "26°"}
-            </h1>
-            <div className="weather-details">
-              <p>
-                H: {weatherData?.temperature[1]}° L:{" "}
-                {weatherData?.temperature[0]}°
-              </p>
-              <p>
-                <strong>
-                  {weatherData?.city}, {weatherData?.country}
-                </strong>
-              </p>
-              <p>{weatherData?.time}</p>
-            </div>
-            <div className="weather-status">
-              <p>{weatherData?.description}</p>
-              <p>Humidity: {weatherData?.humidity}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
+  const searchHistory = (history) => {
+    return (
       <div className="history-section">
         <h3>Search History</h3>
         <ul className="history-list">
           {history.map((entry, index) => (
-            <li key={index}>
-              <span>
-                {entry.city}, {entry.country}
-              </span>
-              <div className="history-actions">
-                <span>{entry.timeOnly}</span>
-                <button onClick={() => handleReSearch(entry)}>
-                  <SearchOutlinedIcon />
-                </button>
-                <button onClick={() => handleDelete(index)}>
-                  <DeleteOutlineOutlinedIcon />
-                </button>
-              </div>
-            </li>
+            <HistoryItem
+              entry={entry}
+              index={index}
+              handleReSearch={handleReSearch}
+              handleRemove={handleDelete}
+            />
           ))}
         </ul>
       </div>
+    );
+  };
+
+  return (
+    <div className="app-container">
+      <Grid container>
+        <Grid size={{ xs: 0, md: 2, lg: 3 }} />
+
+        <Grid size={{ xs: 12, md: 8, lg: 6 }}>
+          <div className="search-section">
+            <input
+              className="country-input"
+              type="text"
+              placeholder="Search"
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+            />
+            <button onClick={handleSearch} className="search-button">
+              <SearchIcon />
+            </button>
+          </div>
+
+          {isLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center" }}>
+              <CircularProgress size={200} />
+            </Box>
+          ) : null}
+
+          {error && <div className="error-box">{error}</div>}
+          <div className={`weather-card`}>
+            {weatherData && (
+              <div
+                className={`weather-info  ${
+                  weatherData?.isCloud ? "cloud" : ""
+                }`}
+              >
+                Today's Weather
+                <h1>
+                  {weatherData
+                    ? `${Math.round(weatherData.temperature[0])}°`
+                    : "26°"}
+                </h1>
+                <div className="weather-details-group">
+                  <div className="weather-details">
+                    <p>
+                      H: {weatherData?.temperature[1]}° L:{" "}
+                      {weatherData?.temperature[0]}°
+                    </p>
+                    <p>
+                      <strong>
+                        {weatherData?.city}, {weatherData?.country}
+                      </strong>
+                    </p>
+                  </div>
+                  <div className="weather-status">
+                    <p>{weatherData?.description}</p>
+                    <p>Humidity: {weatherData?.humidity}</p>
+                    <p>{weatherData?.time}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {searchHistory(history)}
+          </div>
+        </Grid>
+        <Grid
+          item
+          size={{
+            xs: 0,
+            md: 2,
+            lg: 3,
+          }}
+        />
+      </Grid>
     </div>
   );
 }
